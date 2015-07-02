@@ -106,3 +106,23 @@ test('direct', function (t) {
       .on('close', server.close.bind(server));
   });
 });
+
+test('buffer up writes', function (t) {
+  t.plan(1);
+
+  var app = createApp(),
+      server = http.createServer(app.callback()),
+      socket = tmpfile(),
+      uri = 'http://unix:/' + socket,
+      pit = moshpit(uri);
+
+  server.listen(socket, function () {
+    var peer = pit();
+    peer.write({ x: 555 });
+    peer.on('signal', function (data) {
+      t.equal(data.x, '555');
+      this.destroy();
+    })
+    .on('close', server.close.bind(server));
+  });
+});
