@@ -5,6 +5,7 @@ var request = require('request');
 var createApp = require('./app');
 var moshpit = require('./');
 var http = require('http');
+var through = require('through2');
 
 function tmpfile () {
   return path.join((os.tmpdir || os.tmpDir)(), 'moshpit-' + Math.random());
@@ -124,5 +125,37 @@ test('buffer up writes', function (t) {
       this.destroy();
     })
     .on('close', server.close.bind(server));
+  });
+});
+
+test('pipes', function (t) {
+  t.plan(4);
+
+  var app = createApp(),
+      server = http.createServer(app.callback()),
+      socket = tmpfile(),
+      uri = 'http://unix:/' + socket,
+      pit = moshpit(uri);
+
+  server.listen(socket, function () {
+    var peer = pit(), cnt = -1;
+    peer.on('close', server.close.bind(server));
+
+    peer.pipe(through.obj(function (row, enc, cb) {
+      if (++ cnt < 1)
+        t.equal(row[0], 'connect');
+      else {
+        t.equal(row[0], 'signal');
+        t.equal(row[1].x, '555');
+      }
+      cb(null);
+    }));
+
+    peer.once('signal', function (data) {
+      t.equal(data.x, '555');
+      this.destroy();
+    });
+
+    peer.write({ x: 555 });
   });
 });
