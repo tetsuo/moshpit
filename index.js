@@ -3,14 +3,15 @@ var through = require('through2'),
     split = require('split2'),
     combine = require('stream-combiner2'),
     pumpify = require('pumpify'),
-    duplexify = require('duplexify');
+    duplexify = require('duplexify'),
+    xtend = require('xtend');
 
-module.exports = function (uri_) {
+module.exports = function (_uri) {
 
   return moshpit;
 
   function moshpit (id) {
-    var uri = uri_;
+    var uri = _uri;
 
     id && (uri = geturi(uri, id));
     
@@ -19,12 +20,16 @@ module.exports = function (uri_) {
         dup = duplexify.obj(null, sse);
 
     var broker = through.obj(function (row, enc, cb) {
-      process.nextTick(function () {
-        request.post({
-          uri: uri,
-          form: { data: row, token: token }
-        });
-      });
+      var data = xtend(row),
+          form = { data: data, token: token };
+
+      if ('string' === typeof row._cid) {
+        delete data._cid;
+        form.cid = row._cid;
+      }
+
+      process.nextTick(request.post.bind(null, { uri: uri, form: form }));
+
       cb();
     });
 

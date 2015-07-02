@@ -57,3 +57,52 @@ test('events', function (t) {
       .on('close', server.close.bind(server));
   });
 });
+
+test('direct', function (t) {
+  t.plan(6);
+
+  var app = createApp(),
+      server = http.createServer(app.callback()),
+      socket = tmpfile(),
+      uri = 'http://unix:/' + socket,
+      pit = moshpit(uri),
+      peers = [];
+
+  server.listen(socket, function () {
+    pit()
+      .on('connect', function (data) {
+        pit(data.id)
+          .on('signal', function (data) {
+            if (!data.y) {
+              t.notEqual(data.x, '777');
+              t.equal(data.x, '555');
+              return;
+            }
+            t.equal(data.y, '333');
+            process.nextTick(this.destroy.bind(this));
+          });
+        pit(data.id)
+          .on('signal', function (data) {
+            if (!data.y) {
+              t.notEqual(data.x, '555');
+              t.equal(data.x, '777');
+              return;
+            }
+            t.equal(data.y, '333');
+            process.nextTick(this.destroy.bind(this));
+          });
+      })
+      .on('join', function (data) {
+        if (peers.push(data.cid) > 1) {
+          this.write({ _cid: peers[1], x: 777 });
+          this.write({ _cid: peers[0], x: 555 });
+          process.nextTick(this.write.bind(this, { y: 333 }));
+        }
+      })
+      .on('leave', function (data) {
+        peers.splice(peers.indexOf(data.cid), 1);
+        if (!peers.length) this.destroy();
+      })
+      .on('close', server.close.bind(server));
+  });
+});

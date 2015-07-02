@@ -38,6 +38,7 @@
     "split2": "^1.0.0",
     "stream-combiner2": "^1.0.2",
     "through2": "^2.0.0",
+    "xtend": "^4.0.0",
     "yargs": "^3.14.0"
   }
 }
