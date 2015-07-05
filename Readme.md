@@ -134,7 +134,7 @@ Emitted when a signal is received.
 
 Emitted when a new peer is subscribed. `data` contains `cid` of the joining client.
 
-## owner.on('join', function (data))
+## owner.on('leave', function (data))
 
 Emitted when a peer leaves, `data` contains `cid` of the leaving client.
 
